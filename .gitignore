@@ -9,10 +9,8 @@ __pycache__/
 *.pyd
 
 # Environment variables (contains API keys)
-.env
 
 # IDE
-.vscode/
 .idea/
 
 # Testing cache
@@ -29,3 +27,5 @@ Final_Submission/
 
 # Vector Database Cache
 .chroma_cache/
+config.bat
+node_modules

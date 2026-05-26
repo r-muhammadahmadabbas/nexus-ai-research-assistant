@@ -1,0 +1,28 @@
+# Virtual environment
+venv/
+.venv/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Environment variables (contains API keys)
+.env
+
+# IDE
+.vscode/
+.idea/
+
+# Testing cache
+.pytest_cache/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Submission artifacts (not part of the project)
+*.zip
+*.mp4
+Final_Submission/

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Nexus AI — Multi-Agent Research Assistant powered by LangGraph">
+    <title>Nexus AI Research Assistant</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+    <div class="glass-container">
+        <!-- Header -->
+        <header>
+            <div class="logo-area">
+                <div class="pulse-ring"></div>
+                <h1>Nexus AI</h1>
+            </div>
+            <div class="header-right">
+                <span class="status-badge" id="status-badge">Agents Standby</span>
+                <button class="new-chat-btn" id="new-chat-btn" title="New Conversation">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- Agent Pipeline Tracker -->
+        <div class="pipeline-tracker" id="pipeline-tracker">
+            <div class="pipeline-step" id="step-clarity" data-label="Clarity">
+                <div class="step-dot"></div>
+            </div>
+            <div class="pipeline-connector"></div>
+            <div class="pipeline-step" id="step-research" data-label="Research">
+                <div class="step-dot"></div>
+            </div>
+            <div class="pipeline-connector"></div>
+            <div class="pipeline-step" id="step-validator" data-label="Validator">
+                <div class="step-dot"></div>
+            </div>
+            <div class="pipeline-connector"></div>
+            <div class="pipeline-step" id="step-synthesis" data-label="Synthesis">
+                <div class="step-dot"></div>
+            </div>
+        </div>
+
+        <!-- Chat Window -->
+        <main id="chat-window">
+            <div class="message ai-message">
+                <div class="message-content">
+                    Hello! I am your multi-agent research assistant. Ask me about any company — I'll research, validate, and synthesize the findings for you.
+                </div>
+            </div>
+        </main>
+
+        <!-- Typing Indicator -->
+        <div class="typing-indicator hidden" id="typing-indicator">
+            <span></span><span></span><span></span>
+        </div>
+
+        <!-- Input -->
+        <footer>
+            <input type="text" id="user-input" placeholder="Ask about any company..." autocomplete="off">
+            <button id="send-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+            </button>
+        </footer>
+    </div>
+    <script src="/static/app.js"></script>
+</body>
+</html>

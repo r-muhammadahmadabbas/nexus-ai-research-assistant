@@ -24,8 +24,21 @@ Return JSON: {{"validation_result": "sufficient" | "insufficient", "missing_aspe
     content = invoke_llm_with_retry(llm, [HumanMessage(content=prompt)], "fast")
     result = extract_json(content)
 
+    val_result = result.get("validation_result", "insufficient")
+    
+    # ─── Cache Successful Research Findings ───────────────────
+    if val_result == "sufficient":
+        search_query = state.get("search_query", "")
+        research_data = state.get("research_data", "")
+        if search_query and research_data and not search_query.startswith("[CACHED]"):
+            try:
+                from src.agent.core.cache import add_to_semantic_cache
+                add_to_semantic_cache(search_query, research_data)
+            except Exception:
+                pass  # Resilient fallback: fail silently if cache write fails
+                
     # Return assessment outcome to trigger loop or advance to synthesis
     return {
-        "validation_result": result.get("validation_result", "insufficient"),
+        "validation_result": val_result,
         "active_agent": "validator",
     }

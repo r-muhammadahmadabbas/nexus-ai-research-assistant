@@ -3,6 +3,7 @@ from src.agent.state import AgentState
 from src.agent.core.llm import get_llm, invoke_llm_with_retry, extract_json
 from src.agent.core.memory import build_history_string
 from src.agent.core.tools import search_tavily, truncate_text
+from src.agent.core.cache import get_semantic_cache
 
 
 def research_node(state: AgentState) -> dict:
@@ -32,6 +33,19 @@ Latest Query: {recent_message}"""
     else:
         # No history available, use query verbatim
         search_query = recent_message
+
+    # ─── Semantic Cache Layer ─────────────────────────────────
+    cached_data = get_semantic_cache(search_query)
+    if cached_data:
+        past_research = state.get("research_data", "")
+        new_research = f"{past_research}\n\n--- Cache Hit (Query: '{search_query}') ---\n{cached_data}"
+        return {
+            "research_data": new_research,
+            "confidence_score": 9.0,  # High confidence for cached high-quality findings
+            "search_query": f"[CACHED] {search_query}",
+            "attempts": attempts + 1,
+            "active_agent": "research",
+        }
 
     # Execute web search using Tavily API
     try:

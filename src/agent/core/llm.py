@@ -4,20 +4,31 @@ LLM factory and resilient invocation logic.
 import time
 import json
 from langchain_groq import ChatGroq
+from langchain_ollama import ChatOllama
+from langchain_core.language_models.chat_models import BaseChatModel
 from src.core.config import (
     GROQ_API_KEY, MODELS, LLM_RETRY_ATTEMPTS, 
-    LLM_RETRY_DELAY_SEC, FALLBACK_MODEL
+    LLM_RETRY_DELAY_SEC, FALLBACK_MODEL,
+    LLM_PROVIDER, OLLAMA_BASE_URL
 )
 from src.core.logging import setup_logger
 
 logger = setup_logger("nexus_ai.llm")
 
-def get_llm(purpose: str = "fast", temperature: float = 0) -> ChatGroq:
-    """Creates LLM instances based on task purpose (Strategy Pattern)."""
+def get_llm(purpose: str = "fast", temperature: float = 0) -> BaseChatModel:
+    """Creates LLM instances based on task purpose and provider (Strategy Pattern)."""
     model_name = MODELS.get(purpose, MODELS["fast"])
-    return ChatGroq(model=model_name, temperature=temperature, api_key=GROQ_API_KEY)
+    if LLM_PROVIDER == "ollama":
+        logger.info(f"Instantiating local Ollama model '{model_name}' at {OLLAMA_BASE_URL}")
+        return ChatOllama(
+            model=model_name,
+            temperature=temperature,
+            base_url=OLLAMA_BASE_URL
+        )
+    else:
+        return ChatGroq(model=model_name, temperature=temperature, api_key=GROQ_API_KEY)
 
-def invoke_llm_with_retry(llm: ChatGroq, messages: list, purpose: str = "fast") -> str:
+def invoke_llm_with_retry(llm: BaseChatModel, messages: list, purpose: str = "fast") -> str:
     """Invokes the LLM with automatic retry (exponential backoff) and model fallback."""
     for attempt in range(LLM_RETRY_ATTEMPTS):
         try:

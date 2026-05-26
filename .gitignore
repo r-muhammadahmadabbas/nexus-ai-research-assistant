@@ -26,3 +26,6 @@ Thumbs.db
 *.zip
 *.mp4
 Final_Submission/
+
+# Vector Database Cache
+.chroma_cache/

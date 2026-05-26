@@ -290,8 +290,8 @@ pytest -v
 - [x] **Milestone 5:** Connect Server-Sent Events (SSE) for token-by-token and agent-activation streaming.
 - [x] **Milestone 6:** Harden against API limit bottlenecks using dynamic sliding window memory and text truncation.
 - [x] **Milestone 7:** Package with multi-stage Docker builds and comprehensive Pytest automation scripts.
-- [ ] **Milestone 8:** Implement vector database indexing (Pinecone/Chroma) for persistent context caching.
-- [ ] **Milestone 9:** Add support for local models via Ollama.
+- [x] **Milestone 8:** Implement vector database indexing (Pinecone/Chroma) for persistent context caching.
+- [x] **Milestone 9:** Add support for local models via Ollama.
 
 ---
 

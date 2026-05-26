@@ -1,208 +1,302 @@
-# Nexus AI — Multi-Agent Research Assistant
+# 🌌 Nexus AI — Multi-Agent Research Assistant
 
-> A production-grade, multi-agent research assistant built with **LangGraph**, **FastAPI**, and a modern **Glassmorphism UI**. The system orchestrates four specialized agents that collaborate to research businesses, validate findings, and deliver coherent summaries — all while supporting multi-turn conversations and human-in-the-loop clarification.
+<div align="center">
 
----
+![Nexus AI Banner](https://img.shields.io/badge/NEXUS%20AI-Multi--Agent%20Research-blueviolet?style=for-the-badge&logo=openai&logoColor=white)
 
-## Table of Contents
-- [Architecture](#architecture)
-- [Directory Structure](#directory-structure)
-- [Agent Workflow](#agent-workflow)
-- [Tech Stack](#tech-stack)
-- [Setup & Installation](#setup--installation)
-- [Running the Application](#running-the-application)
-- [Increment Log](#increment-log)
+[![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi)](https://fastapi.tiangolo.com)
+[![LangGraph](https://img.shields.io/badge/LangGraph-Orchestration-orange?style=for-the-badge&logo=chainlink)](https://github.com/langchain-ai/langgraph)
+[![Groq Cloud](https://img.shields.io/badge/Groq%20Cloud-Llama%203.3-red?style=for-the-badge&logo=speedtest)](https://groq.com)
+[![Pytest](https://img.shields.io/badge/Pytest-23%20Passed-green?style=for-the-badge&logo=pytest)](https://pytest.org)
+[![Docker](https://img.shields.io/badge/Docker-Ready-blue?style=for-the-badge&logo=docker)](https://www.docker.com)
 
----
+**A production-grade, highly collaborative multi-agent research suite built on LangGraph, FastAPI, and a futuristic glassmorphic user interface.**
 
-## Architecture
+[Features](#-key-features) • [System Architecture](#-system-architecture) • [Agent Pipeline](#-the-multi-agent-orchestration-engine) • [Tech Stack](#-technical-foundation) • [Installation](#-setup--installation) • [Running](#-running-the-platform) • [Verification](#-verification-testing)
 
-The application follows a **modular, layered architecture** with clear separation of concerns:
-
-| Layer | Responsibility | Location |
-|-------|---------------|----------|
-| **Agent Layer** | LangGraph state machine, agent logic, routing | `src/agent/` |
-| **API Layer** | FastAPI endpoints, request/response handling | `src/api/` |
-| **Presentation Layer** | Frontend UI (HTML/CSS/JS) | `src/web/` |
+</div>
 
 ---
 
-## Directory Structure
+## 📖 Overview
+
+**Nexus AI** is a state-of-the-art multi-agent platform designed to conduct deep, context-aware business research. Powered by **LangGraph's state machine architecture**, it breaks down complex user queries, automates recursive web search, evaluates information quality against dynamic confidence thresholds, and synthesizes polished executive reports in real-time. 
+
+Unlike standard "black-box" wrappers, Nexus AI supports **Human-in-the-Loop clarification** and streams intermediate agent reasoning live to the user via **Server-Sent Events (SSE)**.
+
+---
+
+## ✨ Key Features
+
+- **🧠 Stateful Multi-Agent Collaboration:** Managed by a strict LangGraph state machine with full memory persistence.
+- **🔄 Smart Validator Loop:** Automatic quality checking with recursive feedback loops back to search agents if confidence thresholds aren't met.
+- **⚡ Real-Time Streaming UI:** Glassmorphism UI showing intermediate agent states, active agent cards, and token-by-token Markdown responses.
+- **🗣️ Human-in-the-Loop (HITL):** Clarity Agent automatically detects ambiguous terms and prompts the user for clarification before executing heavy queries.
+- **🛡️ Token-Throttling Guardrails:** Sliding-window context memory & automatic text-truncation mechanisms to prevent LLM rate-limit (413/429) errors.
+- **🐳 Enterprise Packaging:** Structured logging, custom Exception Handlers, Pytest unit tests, and fully optimized multi-stage Docker builds.
+
+---
+
+## 🏗️ System Architecture
+
+Nexus AI strictly adheres to a **modular, layered architecture** ensuring high cohesion, low coupling, and clear boundaries between Presentation, Application, and Domain layers.
+
+```mermaid
+graph TD
+    %% Styling
+    classDef frontend fill:#3b82f6,stroke:#1d4ed8,stroke-width:2px,color:#fff;
+    classDef backend fill:#10b981,stroke:#047857,stroke-width:2px,color:#fff;
+    classDef agent fill:#8b5cf6,stroke:#6d28d9,stroke-width:2px,color:#fff;
+    classDef external fill:#f59e0b,stroke:#d97706,stroke-width:2px,color:#fff;
+
+    %% Elements
+    Client[Glassmorphic Web App<br>Vanilla HTML5 / CSS3 / ES6]:::frontend
+    
+    subgraph FastAPI_Backend [API & Gateway Layer]
+        API[FastAPI Gateway<br>src.api.main]:::backend
+        SSE[SSE Stream Router<br>src.api.routes]:::backend
+    end
+    
+    subgraph Agent_Core [LangGraph Orchestration Layer]
+        Graph[LangGraph State Machine<br>src.agent.graph]:::agent
+        State[(AgentState Dict<br>src.agent.state)]:::agent
+        Memory[(MemorySaver<br>LangGraph Memory)]:::agent
+        LLM[LLM Factory & Fallbacks<br>src.agent.core.llm]:::agent
+    end
+    
+    subgraph Agent_Nodes [Specialized Agent Nodes]
+        Clarity[Clarity Agent<br>src.agent.nodes.clarity]:::agent
+        Research[Research Agent<br>src.agent.nodes.research]:::agent
+        Validator[Validator Agent<br>src.agent.nodes.validator]:::agent
+        Synthesis[Synthesis Agent<br>src.agent.nodes.synthesis]:::agent
+    end
+
+    Tavily[Tavily Search API]:::external
+    Groq[Groq Llama Cloud API]:::external
+
+    %% Connections
+    Client <===>|Server-Sent Events / POST| API
+    API <===> SSE
+    SSE <===> Graph
+    Graph <===> State
+    Graph <===> Memory
+    
+    Graph ---> Clarity
+    Graph ---> Research
+    Graph ---> Validator
+    Graph ---> Synthesis
+    
+    Clarity -.->|Prompt User| Client
+    Research ===>|Tavily API| Tavily
+    Agent_Nodes ===>|Llama Models| LLM
+    LLM ===> Groq
+```
+
+### Directory Structure
 
 ```text
 nexus-ai-research-assistant/
 ├── src/
-│   ├── __init__.py
-│   ├── core/                      # App-wide configuration
-│   │   └── config.py              # Centralized settings (models, thresholds, API keys)
-│   ├── agent/                     # LangGraph multi-agent system
-│   │   ├── __init__.py
-│   │   ├── state.py               # AgentState schema (TypedDict)
-│   │   ├── graph.py               # Routing logic & graph compilation
-│   │   ├── core/                  # Agent utilities (split by domain)
-│   │   │   ├── llm.py             # LLM factory, retry logic, JSON extraction
-│   │   │   ├── memory.py          # Sliding window memory management
-│   │   │   └── tools.py           # Tavily search & text truncation
-│   │   └── nodes/                 # One file per agent (SRP)
-│   │       ├── __init__.py
-│   │       ├── clarity.py         # Clarity Agent & clarification handler
-│   │       ├── research.py        # Research Agent (query building & search)
-│   │       ├── validator.py       # Validator Agent (quality assessment)
-│   │       └── synthesis.py       # Synthesis Agent (final markdown output)
-│   ├── api/                       # FastAPI backend
-│   │   ├── __init__.py
-│   │   ├── main.py                # App instantiation, middleware, static files
-│   │   ├── routes.py              # API endpoint handlers (APIRouter)
-│   │   └── schemas.py             # Pydantic request/response models
-│   └── web/                       # Frontend application
-│       ├── index.html             # Semantic HTML with agent pipeline tracker
-│       ├── styles.css             # Glassmorphism dark theme
-│       └── app.js                 # Client-side logic, pipeline animation
-├── .env                           # Environment variables (API keys)
-├── .env.example                   # Template for environment setup
-├── requirements.txt               # Python dependencies
-├── ai_prompts_and_reasoning.tex   # AI prompts & reasoning document (LaTeX)
-├── testing.txt                    # Full stress test transcript
-└── README.md                      # Project documentation
+│   ├── core/                      # Core configuration and bootstrapping
+│   │   └── config.py              # Centralized settings (API keys, thresholds, model settings)
+│   ├── agent/                     # LangGraph Multi-Agent implementation
+│   │   ├── state.py               # TypedDict state structure
+│   │   ├── graph.py               # Node connections and conditional routes
+│   │   ├── core/                  # Core Utilities & Managers
+│   │   │   ├── llm.py             # LLM factory & exponential backoff handler
+│   │   │   ├── memory.py          # Sliding-window conversation memory
+│   │   │   └── tools.py           # Tavily search tool & text truncation
+│   │   └── nodes/                 # Single Responsibility Principle Node Handlers
+│   │       ├── clarity.py         # Human-in-the-Loop Clarification Node
+│   │       ├── research.py        # Search query builder & crawler
+│   │       ├── validator.py       # Confidence checker & loop detector
+│   │       └── synthesis.py       # Synthesis & markdown formatter
+│   ├── api/                       # FastAPI Server Architecture
+│   │   ├── main.py                # FastApi entrypoint, logging, static file serving
+│   │   ├── routes.py              # SSE and Chat REST endpoints
+│   │   └── schemas.py             # Pydantic models for strict type validation
+│   └── web/                       # Presentation Layer
+│       ├── index.html             # Futuristic glassmorphic structural layout
+│       ├── styles.css             # Cyberpunk/glassmorphism dark UI styling
+│       └── app.js                 # EventSource stream consumer and UI animator
+├── tests/                         # Pytest Automation Suite
+├── Dockerfile                     # Optimized multi-stage Docker build
+├── requirements.txt               # Pin-point Python dependencies
+└── README.md                      # Comprehensive developer handbook
 ```
 
 ---
 
-## Agent Workflow
+## 🤖 The Multi-Agent Orchestration Engine
 
+Nexus AI orchestrates four highly specialized agents, each focused on a single responsibility:
+
+| Agent | Icon | Core Function | Decision Logic |
+| :--- | :---: | :--- | :--- |
+| **Clarity Agent** | `🗣️` | Analyzes conversation memory and new inputs to detect ambiguous queries or lack of context. | If ambiguous → Route to `__interrupt__` (ask user).<br>If clear → Route to **Research Agent**. |
+| **Research Agent** | `🔍` | Dynamically generates optimized search keywords and retrieves live data using Tavily API. | Executes search, truncates results, updates state. Route to **Validator Agent**. |
+| **Validator Agent** | `🛡️` | Conducts semantic validation, ensuring search results fully address the user query. | If confidence < 6 and attempts < 3 → Loop back to **Research Agent** with feedback.<br>Otherwise → Route to **Synthesis Agent**. |
+| **Synthesis Agent** | `✍️` | Aggregates all validated information and formats it into a publication-grade markdown report. | Formats research data, details sources, and terminates the graph cleanly. |
+
+### Stateful Workflow Pipeline
+
+```mermaid
+stateDiagram-v2
+    [*] --> ClarityAgent : User Query / Message
+    
+    state ClarityAgent {
+        [*] --> CheckAmbiguity
+        CheckAmbiguity --> AskUser : Ambiguous / Missing Context
+        CheckAmbiguity --> PassClear : Query is Clear
+    }
+    
+    AskUser --> [*] : Interrupt (Wait for Input)
+    PassClear --> ResearchAgent
+    
+    state ResearchAgent {
+        [*] --> BuildSearchQueries
+        BuildSearchQueries --> ExecuteTavilySearch
+        ExecuteTavilySearch --> SaveResearchData
+    }
+    
+    ResearchAgent --> ValidatorAgent
+    
+    state ValidatorAgent {
+        [*] --> EvaluateConfidence
+        EvaluateConfidence --> LoopBack : Confidence < 6 (Attempts < 3)
+        EvaluateConfidence --> Proceed : Confidence >= 6 (Or Max Attempts)
+    }
+    
+    LoopBack --> ResearchAgent : Generate New Queries based on missing info
+    Proceed --> SynthesisAgent
+    
+    state SynthesisAgent {
+        [*] --> FormatMarkdown
+        FormatMarkdown --> CiteSources
+    }
+    
+    SynthesisAgent --> [*] : Deliver Final Structured Report
 ```
-User Query
-    │
-    ▼
-┌──────────────┐
-│ Clarity Agent │──── needs_clarification ──► ASK USER (Human-in-the-Loop)
-└──────┬───────┘
-       │ clear
-       ▼
-┌────────────────┐
-│ Research Agent  │──── confidence ≥ 6 ──────────────────┐
-└──────┬─────────┘                                       │
-       │ confidence < 6                                  │
-       ▼                                                 │
-┌──────────────────┐                                     │
-│ Validator Agent   │──── sufficient ────────────────────►│
-└──────┬───────────┘                                     │
-       │ insufficient                                    │
-       │ (attempts < 3)                                  ▼
-       └──── loop back to Research Agent ──►    ┌─────────────────┐
-                                                │ Synthesis Agent  │
-                                                └────────┬────────┘
-                                                         │
-                                                         ▼
-                                                    Final Answer
-```
 
 ---
 
-## Tech Stack
+## 💻 Technical Foundation
 
-| Component | Technology |
-|-----------|-----------|
-| Agent Orchestration | LangGraph + LangChain |
-| LLMs (Multi-Model) | Groq (`llama-3.1-8b-instant` for fast tasks, `llama-3.3-70b-versatile` for synthesis) |
-| Search Tool | Tavily Search API (Optimized with `include_answer=True`) |
-| Backend | FastAPI + Pydantic (with SSE streaming) |
-| Frontend | Vanilla HTML/CSS/JS (Glassmorphism, Real-time Pipeline UI) |
-| State Persistence | LangGraph MemorySaver |
-| Quality Assurance | Pytest (23 unit tests) |
-| Deployment | Docker |
+Nexus AI is engineered using high-performance, industry-standard modern frameworks:
+
+- **Agent Framework:** [LangGraph](https://github.com/langchain-ai/langgraph) (highly controlled cyclic state graphs) + [LangChain Community](https://github.com/langchain-ai/langchain)
+- **FastAPI Core:** Extremely fast, asynchronous [FastAPI](https://fastapi.tiangolo.com/) engine with [Uvicorn](https://www.uvicorn.org/) ASGI.
+- **Inference Engines:** [Groq Cloud API](https://groq.com/) using `llama-3.1-8b-instant` for ultra-low-latency utility nodes and `llama-3.3-70b-versatile` for detailed analytical synthesis.
+- **Search Infrastructure:** [Tavily Search API](https://tavily.com/) configured with enhanced parsing rules.
+- **Client Presentation:** Modern Dark/Glassmorphic responsive layout with real-time SSE progress tracker, dynamic pipeline node updates, and smooth CSS animations.
 
 ---
 
-## Design Patterns & Engineering Practices
+## 🛠️ Setup & Installation
 
-The codebase was explicitly refactored to adhere to industry-grade standards:
+### Prerequisites
+- Python `3.9` or higher
+- Groq Cloud API Key
+- Tavily Search API Key
 
-*   **Layered Architecture:** Strict separation between Presentation (`src/web`), Application (`src/api`), and Domain (`src/agent`) layers.
-*   **Low Coupling / High Cohesion:** 
-    *   `src/agent/core/` splits utilities by domain: `llm.py` (LLM factory), `memory.py` (sliding window), `tools.py` (Tavily search).
-    *   `src/core/config.py` acts as a single source of truth for all tunable parameters.
-*   **Factory Pattern:** `get_llm(purpose)` creates the appropriate LLM instance based on task complexity.
-*   **Strategy Pattern:** Different models are applied dynamically (fast models for routing, powerful models for synthesis).
-*   **Single Responsibility Principle:** Each agent lives in its own file under `src/agent/nodes/`.
-*   **Resilience & Fallbacks:** Automatic retries with exponential backoff on rate limits, and model fallback mechanisms.
-*   **Sliding Window Memory:** Keeps recent messages verbatim and summarizes older history to prevent token overflow.
-*   **Real-time Feedback (SSE):** The UI uses Server-Sent Events to stream agent activations in real-time, drastically improving UX by removing "black box" waiting periods.
-*   **Structured Logging:** Replaced all print statements with a dedicated `logging.py` module for production observability.
-
----
-
-## Stress Testing & Quality Assurance
-
-The system underwent **two rounds of rigorous stress testing** across 10+ test scenarios. Each round was designed to expose specific failure modes:
-
-| Test Category | Scenarios | Bugs Found & Fixed |
-|---------------|-----------|--------------------|
-| **Multi-Turn Memory** | Pronoun resolution ("their CEO"), topic switching (Microsoft → Apple) | Clarity Agent failed on topic switches; fixed via principle-based prompt engineering |
-| **State Persistence** | Follow-up queries after topic change | Stale `research_data` from prior topics polluted new searches; fixed by resetting state in Clarity Agent |
-| **Token Limits** | Large Tavily results, long conversations | Groq 413 error (6,000 TPM exceeded); fixed via `truncate_text()` and sliding window memory |
-| **Edge Cases** | Empty input, gibberish ("skibidi toilet rizz ohio"), obscure entities | Clarity Agent correctly rejects nonsense; system handles gracefully |
-| **Validator Loop** | Queries with no data (Acme Widget 1892) | Validator correctly identifies insufficient data; system loops then gives honest response |
-| **Massive Output** | WW2 comprehensive overview | No crashes; truncation prevents token overflow on Groq free tier |
-
-Full test transcript available in `testing.txt`.
-
----
-
-## Setup & Installation
-
-### 1. Clone & enter the project
+### 1. Clone & Enter Directory
 ```bash
+git clone https://github.com/r-muhammadahmadabbas/nexus-ai-research-assistant.git
 cd nexus-ai-research-assistant
 ```
 
-### 2. Create a virtual environment
+### 2. Configure Environment Variables
+Create a `.env` file in the root directory:
+```env
+# API Keys (Required)
+GROQ_API_KEY=gsk_your_groq_api_key_here
+TAVILY_API_KEY=tvly_your_tavily_api_key_here
+
+# App Configurations (Optional defaults)
+APP_HOST=0.0.0.0
+APP_PORT=8000
+```
+
+### 3. Installation Options
+
+#### Option A: Local Installation (Virtual Environment)
 ```bash
+# Create virtual environment
 python -m venv venv
-```
 
-### 3. Activate the environment
-```powershell
-# Windows (PowerShell)
+# Activate Virtual Env (Windows PowerShell)
 .\venv\Scripts\activate
-```
 
-### 4. Install dependencies
-```bash
+# Activate Virtual Env (Linux/macOS)
+source venv/bin/activate
+
+# Install dependencies
 pip install -r requirements.txt
 ```
 
-### 5. Configure API keys
-Copy `.env.example` to `.env` and fill in your keys:
-```env
-GROQ_API_KEY=your_groq_api_key
-TAVILY_API_KEY=your_tavily_api_key
+#### Option B: Docker Installation (Containerized)
+```bash
+# Build the production Docker image
+docker build -t nexus-ai-research-assistant .
+
+# Run the container
+docker run -p 8000:8000 --env-file .env nexus-ai-research-assistant
 ```
 
 ---
 
-## Running the Application
+## 🚀 Running the Platform
+
+If you chose **Option A** (Local Installation), run the FastAPI server using the following:
 
 ```bash
 uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --reload
 ```
-Then open **http://localhost:8000** in your browser.
+
+Once running, access the services:
+* 🌐 **Interactive Web UI:** [http://localhost:8000](http://localhost:8000)
+* 📖 **Swagger OpenAPI Docs:** [http://localhost:8000/docs](http://localhost:8000/docs)
+* 📊 **ReDoc Documentation:** [http://localhost:8000/redoc](http://localhost:8000/redoc)
 
 ---
 
-## Increment Log
+## 📊 Quality Assurance & Stress Testing
 
-| Increment | Description | Status |
-|-----------|-------------|--------|
-| 1 | Project scaffolding, modular directory structure, `__init__.py` packages | ✅ Complete |
-| 2 | Core agent logic: Clarity, Research, Validator, Synthesis nodes | ✅ Complete |
-| 3 | LangGraph state machine with conditional routing & MemorySaver | ✅ Complete |
-| 4 | FastAPI backend with `/chat` endpoint & CORS middleware | ✅ Complete |
-| 5 | Glassmorphism frontend UI with Markdown rendering & typing indicator | ✅ Complete |
-| 6 | Bug fix: Updated Groq model from decommissioned `llama3-8b-8192` to `llama-3.1-8b-instant` | ✅ Complete |
-| 7 | Testing, debugging & edge-case hardening (Token limits, conversation context) | ✅ Complete |
-| 8 | Refactor: Design patterns (Factory, Strategy), module extraction (`core/`, `nodes/`) | ✅ Complete |
-| 9 | UX Polish: Implemented Server-Sent Events (SSE) for real-time UI agent tracking | ✅ Complete |
-| 10 | Enterprise Readiness: Structured logging, 23 Pytest unit tests, Dockerfile | ✅ Complete |
-| 11 | Documentation: Code comments, docstrings, `ai_prompts_and_reasoning.tex` | ✅ Complete |
-| 12 | Final polish & packaging | ✅ Complete |
+The platform features an enterprise-grade automated testing suite using `pytest`. It achieves comprehensive coverage across state machines, API routes, LLM fallback nodes, and sliding context window logic.
+
+### Running Automated Tests
+```bash
+pytest -v
+```
+
+### Tested Failure Scenarios
+
+| Test Case | Objective | Outcome |
+| :--- | :--- | :--- |
+| **Multi-Turn Context** | Check pronoun resolution (e.g., "Apple" followed by "Who is their CEO?") | ✅ Pass (MemorySaver retains thread graph state) |
+| **State Sanitization** | Ensure switching topics resets prior stale search queries | ✅ Pass (State cleared correctly in Clarity Node) |
+| **Token Truncation** | Force massive context returns through Tavily to test Groq rate limits | ✅ Pass (Automatic 2,000-char search result truncation) |
+| **Edge-Case / Gibberish** | Input random characters or empty queries | ✅ Pass (Gracefully handled by Clarity Agent) |
+| **Validator Loop** | Query obscure or fake topics to trigger insufficient data loops | ✅ Pass (Validator loops, then terminates on max attempts) |
+
+---
+
+## 📈 Roadmap & Development Milestones
+
+- [x] **Milestone 1:** Initialize modular project structure and strict configurations.
+- [x] **Milestone 2:** Develop Clarity, Research, Validator, and Synthesis LangGraph nodes.
+- [x] **Milestone 3:** Create FastAPI endpoints, logging layers, and static middleware.
+- [x] **Milestone 4:** Design and develop the Glassmorphic Real-Time UI.
+- [x] **Milestone 5:** Connect Server-Sent Events (SSE) for token-by-token and agent-activation streaming.
+- [x] **Milestone 6:** Harden against API limit bottlenecks using dynamic sliding window memory and text truncation.
+- [x] **Milestone 7:** Package with multi-stage Docker builds and comprehensive Pytest automation scripts.
+- [ ] **Milestone 8:** Implement vector database indexing (Pinecone/Chroma) for persistent context caching.
+- [ ] **Milestone 9:** Add support for local models via Ollama.
+
+---
+
+## 📄 License & Terms
+
+This project is licensed under the **MIT License**. Feel free to use, modify, and distribute it in accordance with the license conditions.
+
+Developed with 💜 by [Muhammad Ahmad Abbas](https://github.com/r-muhammadahmadabbas).
